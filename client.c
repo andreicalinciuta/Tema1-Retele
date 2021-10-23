@@ -12,7 +12,7 @@
 
 #define FIFO_CLIENT_SERVER "clientServerFifo"
 #define FIFO_SERVER_CLIENT "serverClientFifo"
-#define NMAX 124
+#define NMAX 1024
 
 void handle_errors(char * msg)
 {
@@ -149,23 +149,25 @@ int main()
 				} 
 
 
-				if(strcmp(instructionCleaned, "cautapid") == 0)
+				
+				fd_s2c = open(FIFO_SERVER_CLIENT, O_RDONLY);
+
+				if(fd_s2c < 0)
 				{
-					fd_s2c = open(FIFO_SERVER_CLIENT, O_RDONLY);
-
-					if(fd_s2c < 0)
-					{
-						handle_errors("Client:Some problems with opening fd_s2c, line 33?? \0");
-					}
-
-					char mesajuuu[NMAX];
-
-					read(fd_s2c, mesajuuu, NMAX);
-
-					printf("Client: AM PRIMIT MESAJUL %s \n", mesajuuu);
-
-					close(fd_s2c);
+					handle_errors("Client:Some problems with opening fd_s2c, line 33?? \0");
 				}
+
+				char message_to_be_received[NMAX];
+
+				read(fd_s2c, message_to_be_received, NMAX);
+
+				char *token = strtok(message_to_be_received, " ");
+				int len;
+				sscanf(token, "%d", &len);
+				token = strtok(NULL, "\0");
+				printf("%s", token);
+
+				close(fd_s2c);
 			}
 		} 
 		else
@@ -185,23 +187,20 @@ int main()
 				} 
 
 
-				if(strcmp(instructionCleaned, "cautapid") == 0)
+				fd_s2c = open(FIFO_SERVER_CLIENT, O_RDONLY);
+
+				if(fd_s2c < 0)
 				{
-					fd_s2c = open(FIFO_SERVER_CLIENT, O_RDONLY);
-
-					if(fd_s2c < 0)
-					{
-						handle_errors("Client:Some problems with opening fd_s2c, line 33?? \0");
-					}
-
-					char mesajuuu[NMAX];
-
-					read(fd_s2c, mesajuuu, NMAX);
-
-					printf("Client: AM PRIMIT MESAJUL %s \n", mesajuuu);
-
-					close(fd_s2c);
+					handle_errors("Client:Some problems with opening fd_s2c, line 33?? \0");
 				}
+
+				char message_to_be_received[NMAX];
+
+				read(fd_s2c, message_to_be_received, NMAX);
+
+				printf("Client: AM PRIMIT MESAJUL %s \n", message_to_be_received);
+
+				close(fd_s2c);
 			}
 		} 
 		else
