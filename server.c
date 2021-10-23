@@ -7,11 +7,17 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <utmp.h>
+#include <time.h>
+#include <sys/time.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 
 #define FIFO_CLIENT_SERVER "clientServerFifo"
 #define FIFO_SERVER_CLIENT "serverClientFifo"
-#define NMAX 124
+#define NMAX 1024
 
 void handle_errors(char * msg)
 {
@@ -74,6 +80,122 @@ void split_instruction(char *original, char *firstWord, char *secondWord, char *
 	thirdWord[strlen(thirdWord)] = '\0';
     return;
 }
+bool get_proc_info(char *pid, char *info)
+{
+    FILE *fp;
+    char *line = NULL;
+    size_t len;
+    char path[NMAX] = "";
+    strcat(path, "/proc/");
+    strcat(path, pid);
+    strcat(path, "/status");
+    //printf("Path: {%s}\n", path);
+
+
+    fp = fopen(path, "r");
+    if(fp == NULL)
+    {
+        return false;
+    }
+    while((getline(&line, &len, fp)) != -1)
+    {
+        char *firstWord = strtok(line, " \n\t");
+        if(strcmp(firstWord, "Name:") == 0)
+        {
+            strcat(info, firstWord);
+            if((firstWord = strtok(NULL, " \n\t")) != NULL)
+                strcat(info, firstWord);
+            strcat(info, "\n");
+        }
+        else
+        if(strcmp(firstWord, "State:") == 0)
+        {
+            strcat(info, firstWord);
+            if((firstWord = strtok(NULL, " \n\t")) != NULL)
+                strcat(info, firstWord);
+            if((firstWord = strtok(NULL, " \n\t")) != NULL)
+                strcat(info, firstWord);
+            strcat(info, "\n");
+        }
+        else
+        if(strcmp(firstWord, "Ppid:") == 0)
+        {
+            strcat(info, firstWord);
+            if((firstWord = strtok(NULL, " \n\t")) != NULL)
+                strcat(info, firstWord);
+            strcat(info, "\n");
+        }
+        else
+        if(strcmp(firstWord, "Uid:") == 0)
+        {
+            strcat(info, firstWord);
+            if((firstWord = strtok(NULL, " \n\t")) != NULL)
+                strcat(info, firstWord);
+            if((firstWord = strtok(NULL, " \n\t")) != NULL)
+                strcat(info, firstWord);
+            if((firstWord = strtok(NULL, " \n\t")) != NULL)
+                strcat(info, firstWord);
+            if((firstWord = strtok(NULL, " \n\t")) != NULL)
+                strcat(info, firstWord);
+            strcat(info, "\n");
+        }
+        else
+        if(strcmp(firstWord, "VmSize:") == 0)
+        {
+            strcat(info, firstWord);
+            if((firstWord = strtok(NULL, " \n\t")) != NULL)
+                strcat(info, firstWord);
+            if((firstWord = strtok(NULL, " \n\t")) != NULL)
+                strcat(info, firstWord);
+            strcat(info, "\n");
+        }
+    }
+    fclose(fp);
+    if(line)
+        free(line);
+    return true;
+}
+
+void get_logged_users(char *logged_users)
+{
+    FILE *fp;
+    int logsize = 10;
+    struct utmp log[logsize];
+
+    int index = 0;
+    fp = fopen("/var/run/utmp", "rb"); 
+    
+    if(fp == NULL)
+    {
+        exit(2);
+    }
+    fread(&log, sizeof(struct utmp), logsize, fp);
+    for(index = 0 ; index < logsize ; ++index)
+    {
+        if(log[index].ut_user[0] >= 'A' && log[index].ut_user[0] <= 'z' )
+        {
+            time_t second;
+            second = log[index].ut_tv.tv_sec;
+            char convert[264];
+
+            strcat(logged_users, "\n User: ");
+            sprintf(convert, "%s", log->ut_user);
+            strcat(logged_users, convert);
+
+            strcat(logged_users, " \n Host: ");
+            sprintf(convert, "%s", log->ut_host);
+            strcat(logged_users, convert);
+
+            strcat(logged_users, " \n Time: ");
+            strcat(logged_users, asctime(localtime(&second)));
+            strcat(logged_users, "\n");
+
+            //printf("%s", asctime(localtime(&second)));
+        }
+    }
+    logged_users[strlen(logged_users)] = '\0';
+    fclose(fp);
+}
 
 int main()
 {
@@ -127,6 +249,65 @@ int main()
 				else
 					write(fd_s2c, "47 You Are Unauthorized To Perform This Request!\0", NMAX);
 			}
+			else
+			if(strcmp(firstWord, "get-proc-info") == 0)
+			{
+				char info[NMAX] = "";
+				if(get_proc_info(thirdWord, info))
+				{
+					char message_to_be_sent[NMAX] = "";
+					sprintf(message_to_be_sent, "%ld", strlen(info));
+					strcat(message_to_be_sent, " ");
+					strcat(message_to_be_sent, info);
+					message_to_be_sent[strlen(message_to_be_sent)] = '\0';
+					write(fd_s2c, message_to_be_sent, sizeof(message_to_be_sent));
+				}
+				else
+					write(fd_s2c, "23 No such process exist!\n\0", NMAX);
+
+
+
+
+
+
+
+
+
+
+                int sockp[2], kid;
+                if(socketpair(AF_UNIX, SOCK_STREAM, 0, sockp) < 0)
+                {
+                    handle_errors("Some problems with socket");
+                }
+                else
+                {
+                    if((kid = fork()) == -1)
+                    {
+                        handle_errors("Some problems with fork");
+                    }
+                    else
+                    {
+                        if(kid == 0)
+                        {
+
+                        }
+                        else
+                        {
+                            
+                        }
+                    }
+                }
+			}
+			else
+			if(strcmp(firstWord, "get-logged-users") == 0)
+			{
+				char logged_users[NMAX] = "";
+   		 		get_logged_users(logged_users);
+				printf("%s", logged_users);
+				write(fd_s2c, logged_users, sizeof(logged_users));
+				
+			}
+			close(fd_s2c);
 		}
 		printf("Server: A venit instructiunea {%s} \n", instruction);
 		instruction[0] = '\0'; 
@@ -134,30 +315,6 @@ int main()
 	
 	return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
