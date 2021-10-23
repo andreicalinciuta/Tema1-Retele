@@ -101,7 +101,7 @@ int main()
 			}
 			else
 			{
-				printf("Client: Logare\n");
+				//printf("Client: Logare\n");
 
 				if( write(fd_c2s, instructionCleaned, strlen(instructionCleaned)) == -1 )
 				{
@@ -122,11 +122,11 @@ int main()
 				read(fd_s2c, from_server, NMAX);
 				if(from_server[0] == '2')
 				{
-					printf("\n{%s}\n", from_server + 3);
+					printf("\n%s\n", from_server + 3);
 					FLAG_logged = true;
 				}
 				else
-					printf("\n{%s}\n", from_server + 3);
+					printf("\n%s\n", from_server + 3);
 
 				close(fd_s2c);
 			}
@@ -141,7 +141,7 @@ int main()
 			}
 			else
 			{
-				printf("Client: Get-Proc-Pid\n");
+				//printf("Client: Get-Proc-Pid\n");
 				
 				if( write(fd_c2s, instructionCleaned, strlen(instructionCleaned)) == -1 )
 				{
@@ -165,7 +165,7 @@ int main()
 				int len;
 				sscanf(token, "%d", &len);
 				token = strtok(NULL, "\0");
-				printf("%s", token);
+				printf("\n%s\n", token);
 
 				close(fd_s2c);
 			}
@@ -179,7 +179,7 @@ int main()
 			}
 			else
 			{
-				printf("Client: Get-Logged-Users\n");
+				//printf("Client: Get-Logged-Users\n");
 				
 				if( write(fd_c2s, instructionCleaned, strlen(instructionCleaned)) == -1 )
 				{
@@ -198,7 +198,7 @@ int main()
 
 				read(fd_s2c, message_to_be_received, NMAX);
 
-				printf("Client: AM PRIMIT MESAJUL %s \n", message_to_be_received);
+				printf("%s", message_to_be_received);
 
 				close(fd_s2c);
 			}
@@ -212,7 +212,7 @@ int main()
 			}
 			else
 			{
-				printf("Client: Logout\n");
+				printf("Logout\n");
 				FLAG_logged = false;
 			}
 			
@@ -220,12 +220,12 @@ int main()
 		else
 		if(strcmp(firstWord, "quit") == 0 && strlen(secondWord) == 0)
 		{
-			printf("Client: Quit\n");
+			printf("Quit\n");
 			break;
 		} 
 		else
 			printf("\nError: Unknown command!\n\n");
-		printf("Insert command: ");
+		printf("\nInsert command: ");
 	}
 	close(fd_c2s);
 	
