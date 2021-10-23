@@ -203,118 +203,286 @@ int main()
 	int fifo_c2s, fifo_s2c, fd_c2s, fd_s2c;
 
 	fifo_c2s = mknod(FIFO_CLIENT_SERVER, S_IFIFO | 0666, 0);
+
+    int pipe_dad_kid[2], pipe_kid_dad[2], pid_loggin;
+    int sockp_logged_users[2], pid_logged_users;
+    int pipe_dad_kid_proc[2], pipe_kid_dad_proc[2], pid_proc;
+
+    if(pipe(pipe_dad_kid_proc) < 0)
+    {
+        handle_errors("Some problems with pipe_dad_kid_proc! Exit.");
+    }
+
+
+    if(pipe(pipe_kid_dad_proc) < 0)
+    {
+        handle_errors("Some problems with pipe_kid_dad_proc! Exit.");
+    }
+
+    if((pid_proc = fork()) < 0)
+    {
+        handle_errors("Some problems with fork! Exit.");
+    }
+    
+
+    if(pipe(pipe_dad_kid) < 0)
+    {
+        handle_errors("Some problems with pipe! Exit.");
+    }
+
+
+    if(pipe(pipe_kid_dad) < 0)
+    {
+        handle_errors("Some problems with pipe! Exit.");
+    }
 	
-	if( fifo_c2s < 0 )
-	{
-		handle_errors("Server:Some problems with mknod, line 11 \0");
-	}
+    if((pid_loggin = fork()) < 0)
+    {
+        handle_errors("Some problems with fork! Exit.");
+    }
 
-	fd_c2s = open(FIFO_CLIENT_SERVER, O_RDONLY);
-	
-	if( fd_c2s < 0 )
-	{
-		handle_errors("Server:Some problems with opening fifo, line 33?? \0");
-	}
-	int num;
-	do
-	{
-		if((num = read(fd_c2s, instruction, NMAX)) == -1)
-			handle_errors("Nu e ok la scriere \0");
-		else
-		{
-			//printf("Server22: A venit instructiunea {%s}-{%d} \n", instruction, num);
-			if(num == 0)
-			{
-				return 0;
-			}
-			instruction[num] = '\0';		
-			char firstWord[NMAX] = "";
-			char secondWord[NMAX] = "";
-			char thirdWord[NMAX] = "";
-			split_instruction(instruction, firstWord, secondWord, thirdWord);
-			fd_s2c = open(FIFO_SERVER_CLIENT, O_WRONLY);
+    if(pid_loggin > 0) // Dad
+    {
+        close(pipe_dad_kid[0]);
+        close(pipe_kid_dad[1]);
 
-			if(fd_s2c < 0)
-			{
-				handle_errors("Server:Some problems with opening fd_s2c, line 33?? \0");
-			}
+        if(socketpair(AF_UNIX, SOCK_STREAM, 0, sockp_logged_users) < 0)
+        {
+            handle_errors("Some problems with socket! Exit");
+        }
 
-			
-			if(strcmp(firstWord, "login") == 0)
-			{
-				if(test_logger(thirdWord))
-				{
-					write(fd_s2c, "22 Successfully logged!\0", NMAX);
-				}
-				else
-					write(fd_s2c, "47 You Are Unauthorized To Perform This Request!\0", NMAX);
-			}
-			else
-			if(strcmp(firstWord, "get-proc-info") == 0)
-			{
-				char info[NMAX] = "";
-				if(get_proc_info(thirdWord, info))
-				{
-					char message_to_be_sent[NMAX] = "";
-					sprintf(message_to_be_sent, "%ld", strlen(info));
-					strcat(message_to_be_sent, " ");
-					strcat(message_to_be_sent, info);
-					message_to_be_sent[strlen(message_to_be_sent)] = '\0';
-					write(fd_s2c, message_to_be_sent, sizeof(message_to_be_sent));
-				}
-				else
-					write(fd_s2c, "23 No such process exist!\n\0", NMAX);
+        if((pid_logged_users = fork()) < 0)
+        {
+            handle_errors("Some problems with fork! Exit.");
+        }
 
+        if(pid_logged_users > 0) // Dad
+        {
+            close(sockp_logged_users[0]);
+            
 
-
-
-
-
-
-
-
-
-                int sockp[2], kid;
-                if(socketpair(AF_UNIX, SOCK_STREAM, 0, sockp) < 0)
+            if(pid_proc > 0) // Dad finally
+            {
+                close(pipe_dad_kid_proc[0]);
+                close(pipe_kid_dad_proc[1]);
+                if( fifo_c2s < 0 )
                 {
-                    handle_errors("Some problems with socket");
+                    handle_errors("Server:Some problems with mknod, line 11 \0");
                 }
-                else
+
+                fd_c2s = open(FIFO_CLIENT_SERVER, O_RDONLY);
+        
+                if( fd_c2s < 0 )
                 {
-                    if((kid = fork()) == -1)
-                    {
-                        handle_errors("Some problems with fork");
-                    }
+                    handle_errors("Server:Some problems with opening fifo, line 33?? \0");
+                }
+                int num;
+                do
+                {
+                    if((num = read(fd_c2s, instruction, NMAX)) == -1)
+                        handle_errors("Nu e ok la scriere \0");
                     else
                     {
-                        if(kid == 0)
+                        //printf("Server22: A venit instructiunea {%s}-{%d} \n", instruction, num);
+                        if(num == 0)
                         {
+                            return 0;
+                        }
+                        instruction[num] = '\0';		
+                        char firstWord[NMAX] = "";
+                        char secondWord[NMAX] = "";
+                        char thirdWord[NMAX] = "";
+                        split_instruction(instruction, firstWord, secondWord, thirdWord);
+                        fd_s2c = open(FIFO_SERVER_CLIENT, O_WRONLY);
 
+                        if(fd_s2c < 0)
+                        {
+                            handle_errors("Server:Some problems with opening fd_s2c, line 33?? \0");
+                        }
+
+                        
+                        if(strcmp(firstWord, "login") == 0)
+                        {
+                            /*
+                            if(test_logger(thirdWord))
+                            {
+                                write(fd_s2c, "22 Successfully logged!\0", NMAX);
+                            }
+                            else
+                                write(fd_s2c, "47 You Are Unauthorized To Perform This Request!\0", NMAX);
+                            */
+                            char message_to_be_sent[NMAX] = "";
+                            write(pipe_dad_kid[1], thirdWord, sizeof(thirdWord));
+                            read(pipe_kid_dad[0], message_to_be_sent, NMAX);
+                            write(fd_s2c, message_to_be_sent, sizeof(message_to_be_sent));
                         }
                         else
+                        if(strcmp(firstWord, "get-proc-info") == 0)
                         {
+                            char message_to_be_sent[NMAX] = "";
+                            
+                            char info[NMAX] = "";
+                            /*if(get_proc_info(thirdWord, info))
+                            {
+                                sprintf(message_to_be_sent, "%ld", strlen(info));
+                                strcat(message_to_be_sent, " ");
+                                strcat(message_to_be_sent, info);
+                                message_to_be_sent[strlen(message_to_be_sent)] = '\0';
+                                write(fd_s2c, message_to_be_sent, sizeof(message_to_be_sent));
+                            }
+                            else
+                                write(fd_s2c, "23 No such process exist!\n\0", NMAX);*/
+                            printf("Server: ThirdWord is {%s}\n", thirdWord);
+                            if(write(pipe_dad_kid_proc[1], thirdWord, sizeof(thirdWord)) < 0)
+                            {
+                                handle_errors("Some problems with writing in pipe_dad_kid_proc! Exit");
+                            }
+                            if(read(pipe_kid_dad_proc[0], message_to_be_sent, NMAX) < 0)
+                            {
+                                handle_errors("Some problems with writing in pipe_kid_dad_proc! Exit");
+                            }
+                            write(fd_s2c, message_to_be_sent, sizeof(message_to_be_sent));
                             
                         }
+                        else
+                        if(strcmp(firstWord, "get-logged-users") == 0)
+                        {
+                            /*
+                            get_logged_users(logged_users);
+                            printf("%s", logged_users);
+                            */
+                            char logged_users[NMAX] = "";
+                            //printf("Server: Incep procesul\n");
+                            if(write(sockp_logged_users[1], firstWord, sizeof(firstWord)) < 0)
+                            {
+                                handle_errors("Some problems with writing in socket logged users! Exit");
+                            }
+                            if(read(sockp_logged_users[1], logged_users, NMAX) < 0)
+                            {
+                                handle_errors("Some problems with writing in socket logged users! Exit");
+                            }
+                            write(fd_s2c, logged_users, sizeof(logged_users));
+                        }
+                        close(fd_s2c);
                     }
+                    printf("Server: A venit instructiunea {%s} \n", instruction);
+                    instruction[0] = '\0'; 
+                } while(num > 0);
+            }
+            else 
+            if(pid_proc == 0)
+            {
+                //Proc kid
+                close(pipe_dad_kid[1]);
+                close(pipe_kid_dad[0]);
+                close(sockp_logged_users[1]);
+                close(sockp_logged_users[0]);
+                close(pipe_dad_kid_proc[1]);
+                close(pipe_kid_dad_proc[0]);
+
+                int num;
+                while((num = read(pipe_dad_kid_proc[0], instruction, NMAX)) > 0)
+                {
+                    printf("Server-kid: ThirdWord is {%s}\n", instruction);
+                    char message_to_be_sent[NMAX] = "";
+                    char info[NMAX] = "";
+                    if(get_proc_info(instruction, info))
+                    {
+                        sprintf(message_to_be_sent, "%ld", strlen(info));
+                        strcat(message_to_be_sent, " ");
+                        strcat(message_to_be_sent, info);
+                        message_to_be_sent[strlen(message_to_be_sent)] = '\0';
+                        write(pipe_kid_dad_proc[1], message_to_be_sent, sizeof(message_to_be_sent));
+                    }
+                    else
+                        write(pipe_kid_dad_proc[1], "23 No such process exist!\n\0", NMAX);
                 }
-			}
-			else
-			if(strcmp(firstWord, "get-logged-users") == 0)
-			{
-				char logged_users[NMAX] = "";
-   		 		get_logged_users(logged_users);
-				printf("%s", logged_users);
-				write(fd_s2c, logged_users, sizeof(logged_users));
-				
-			}
-			close(fd_s2c);
-		}
-		printf("Server: A venit instructiunea {%s} \n", instruction);
-		instruction[0] = '\0'; 
-	}while(num > 0);
+                if(num != 0)
+                {
+                    handle_errors("Some problems with log in kid !! EXIST");
+                    exit(2);
+                }
+
+            }
+
+
+
+        }
+        else
+        {
+            //Logged users kid
+            close(pipe_dad_kid[1]);
+            close(pipe_kid_dad[0]);
+            close(sockp_logged_users[1]);
+            close(pipe_dad_kid_proc[0]);
+            close(pipe_kid_dad_proc[1]);
+            close(pipe_dad_kid_proc[1]);
+            close(pipe_kid_dad_proc[0]);
+            while(read(sockp_logged_users[0], instruction, NMAX) > 0)
+            {
+                //printf("Server-copil: am primit {%s}\n", instruction);
+                char logged_users[NMAX] = "";
+                get_logged_users(logged_users);
+                write(sockp_logged_users[0], logged_users, sizeof(logged_users));
+                //printf("Server-copil: am scris {%s}\n", logged_users);
+            }
+
+        }
+
+
+
+
+    }
+    else
+    {
+        //Log in kid
+        close(pipe_dad_kid[1]);
+        close(pipe_kid_dad[0]);
+        close(pipe_dad_kid_proc[1]);
+        close(pipe_kid_dad_proc[0]);
+        int num;
+        while((num = read(pipe_dad_kid[0], instruction, NMAX)) > 0)
+            if(test_logger(instruction))
+            {
+                write(pipe_kid_dad[1], "22 Successfully logged!\0", NMAX);
+            }
+            else
+                write(pipe_kid_dad[1], "47 You Are Unauthorized To Perform This Request!\0", NMAX);
+        if(num != 0)
+        {
+            handle_errors("Some problems with log in kid !! EXIST");
+            exit(2);
+        }
+
+    }
+
 	
 	return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
